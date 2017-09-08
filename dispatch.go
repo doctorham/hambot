@@ -7,8 +7,9 @@ import (
 )
 
 type Message struct {
+	*slack.MessageEvent
+
 	Session     *Session
-	Message     *slack.MessageEvent
 	DirectText  string // non-empty if direct message or begins with @hambot
 	ReplyPrefix string // non-empty if begins with @hambot
 }
@@ -41,22 +42,25 @@ func (this *Dispatcher) AddHandler(handler MessageHandler) {
 }
 
 func (this *Dispatcher) Dispatch(slackMessage *slack.MessageEvent) {
+	var message Message
+	message.MessageEvent = slackMessage
+	message.Session = this.session
+
 	// ignore messages sent by another hambot
-	if slackMessage.User == this.session.Info.User.ID {
+	if message.User == this.session.Info.User.ID {
 		return
 	}
 
-	message := Message{Session: this.session, Message: slackMessage}
-	matches := this.atHambot.FindStringSubmatch(slackMessage.Text)
+	matches := this.atHambot.FindStringSubmatch(message.Text)
 	if matches == nil {
 		// accept messages without @hambot tag if sent directly to hambot
-		if this.session.GetIM(slackMessage.Channel) != nil {
-			message.DirectText = slackMessage.Text
+		if this.session.GetIM(message.Channel) != nil {
+			message.DirectText = message.Text
 		}
 	} else {
 		message.DirectText = matches[2]
-		if this.session.GetIM(slackMessage.Channel) == nil {
-			message.ReplyPrefix = "<@" + message.Message.User + "> "
+		if this.session.GetIM(message.Channel) == nil {
+			message.ReplyPrefix = "<@" + message.User + "> "
 		}
 	}
 
