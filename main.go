@@ -17,7 +17,8 @@ var gConfig struct {
 }
 
 func main() {
-	if err := loadConfig(); err != nil {
+	var err error
+	if err = loadConfig(); err != nil {
 		panic(err)
 	}
 
@@ -52,7 +53,9 @@ func main() {
 			switch e := event.Data.(type) {
 			case *slack.ConnectedEvent:
 				session.Start(client, e.Info, rtm)
-				dispatcher = NewDispatcher(&session)
+				if dispatcher, err = NewDispatcher(&session); err != nil {
+					panic(err)
+				}
 				dispatcher.AddHandler(&HamEcho{})
 
 			case *slack.MessageEvent:

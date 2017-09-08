@@ -24,17 +24,17 @@ type Dispatcher struct {
 	handlers []MessageHandler
 }
 
-func NewDispatcher(session *Session) *Dispatcher {
+func NewDispatcher(session *Session) (*Dispatcher, error) {
 	dispatcher := Dispatcher{session: session}
 
 	var err error
 	dispatcher.atHambot, err = regexp.Compile(
 		"^\\s*<@" + session.Info.User.ID + ">(\\s*:)?\\s+(.*?)\\s*$")
 	if err != nil {
-		panic(err)
+		return nil, err
 	}
 
-	return &dispatcher
+	return &dispatcher, nil
 }
 
 func (this *Dispatcher) AddHandler(handler MessageHandler) {
