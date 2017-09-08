@@ -2,10 +2,13 @@ package main
 
 import "github.com/nlopes/slack"
 
+const channelBufferSize int = 32
+
 type Session struct {
-	Client *slack.Client
-	Info   *slack.Info
-	RTM    *slack.RTM
+	Client    *slack.Client
+	Info      *slack.Info
+	RTM       *slack.RTM
+	Callbacks chan func()
 
 	users    map[string]*slack.User
 	channels map[string]*slack.Channel
@@ -13,30 +16,31 @@ type Session struct {
 	ims      map[string]*slack.IM
 }
 
-func NewSession(client *slack.Client, info *slack.Info, rtm *slack.RTM) *Session {
-	s := Session{Client: client, Info: info, RTM: rtm}
+func (this *Session) Start(client *slack.Client, info *slack.Info, rtm *slack.RTM) {
+	this.Client = client
+	this.Info = info
+	this.RTM = rtm
+	this.Callbacks = make(chan func(), channelBufferSize)
 
-	s.users = make(map[string]*slack.User)
+	this.users = make(map[string]*slack.User)
 	for index := range info.Users {
-		s.users[info.Users[index].ID] = &info.Users[index]
+		this.users[info.Users[index].ID] = &info.Users[index]
 	}
 
-	s.channels = make(map[string]*slack.Channel)
+	this.channels = make(map[string]*slack.Channel)
 	for index := range info.Channels {
-		s.channels[info.Channels[index].ID] = &info.Channels[index]
+		this.channels[info.Channels[index].ID] = &info.Channels[index]
 	}
 
-	s.groups = make(map[string]*slack.Group)
+	this.groups = make(map[string]*slack.Group)
 	for index := range info.Groups {
-		s.groups[info.Groups[index].ID] = &info.Groups[index]
+		this.groups[info.Groups[index].ID] = &info.Groups[index]
 	}
 
-	s.ims = make(map[string]*slack.IM)
+	this.ims = make(map[string]*slack.IM)
 	for index := range info.IMs {
-		s.ims[info.IMs[index].ID] = &info.IMs[index]
+		this.ims[info.IMs[index].ID] = &info.IMs[index]
 	}
-
-	return &s
 }
 
 func (s *Session) GetUser(id string) *slack.User {

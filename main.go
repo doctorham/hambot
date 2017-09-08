@@ -18,7 +18,7 @@ var gConfig struct {
 
 func main() {
 	if err := loadConfig(); err != nil {
-		panic(err.Error())
+		panic(err)
 	}
 
 	client := slack.New(gConfig.SlackToken)
@@ -36,36 +36,46 @@ func main() {
 
 	fmt.Println("Hambot activated")
 
-	var session *Session
+	var session Session
 	var dispatcher *Dispatcher
 
-	for event := range rtm.IncomingEvents {
-		switch e := event.Data.(type) {
-		case *slack.ConnectedEvent:
-			session = NewSession(client, e.Info, rtm)
-			dispatcher = NewDispatcher(session)
-			dispatcher.AddHandler(&HamEcho{})
+	for {
+		select {
+		case callback := <-session.Callbacks:
+			callback()
 
-		case *slack.MessageEvent:
-			dispatcher.Dispatch(e)
+		case event, ok := <-rtm.IncomingEvents:
+			if !ok {
+				done = true
+				break
+			}
+			switch e := event.Data.(type) {
+			case *slack.ConnectedEvent:
+				session.Start(client, e.Info, rtm)
+				dispatcher = NewDispatcher(&session)
+				dispatcher.AddHandler(&HamEcho{})
 
-		// non-fatal errors
-		case *slack.UnmarshallingErrorEvent:
-			onNonFatalError(e)
-		case *slack.MessageTooLongEvent:
-			onNonFatalError(e)
-		case *slack.OutgoingErrorEvent:
-			onNonFatalError(e)
-		case *slack.IncomingEventError:
-			onNonFatalError(e)
-		case *slack.AckErrorEvent:
-			onNonFatalError(e)
+			case *slack.MessageEvent:
+				dispatcher.Dispatch(e)
 
-		// fatal errors
-		case *slack.ConnectionErrorEvent:
-			onFatalError(e)
-		case *slack.InvalidAuthEvent:
-			onFatalError(errors.New("InvalidAuthEvent"))
+			// non-fatal errors
+			case *slack.UnmarshallingErrorEvent:
+				onNonFatalError(e)
+			case *slack.MessageTooLongEvent:
+				onNonFatalError(e)
+			case *slack.OutgoingErrorEvent:
+				onNonFatalError(e)
+			case *slack.IncomingEventError:
+				onNonFatalError(e)
+			case *slack.AckErrorEvent:
+				onNonFatalError(e)
+
+			// fatal errors
+			case *slack.ConnectionErrorEvent:
+				onFatalError(e)
+			case *slack.InvalidAuthEvent:
+				onFatalError(errors.New("InvalidAuthEvent"))
+			}
 		}
 
 		if done {
