@@ -37,13 +37,17 @@ func main() {
 	fmt.Println("Hambot activated")
 
 	var session *Session
+	var dispatcher *Dispatcher
 
 	for event := range rtm.IncomingEvents {
 		switch e := event.Data.(type) {
 		case *slack.ConnectedEvent:
 			session = NewSession(client, e.Info, rtm)
+			dispatcher = NewDispatcher(session)
+			dispatcher.AddHandler(&HamEcho{})
+
 		case *slack.MessageEvent:
-			dispatchMessage(session, e)
+			dispatcher.Dispatch(e)
 
 		// non-fatal errors
 		case *slack.UnmarshallingErrorEvent:
