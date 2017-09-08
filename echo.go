@@ -7,14 +7,13 @@ import (
 
 type HamEcho struct{}
 
-func (this *HamEcho) HandleMessage(message Message) bool {
-	if strings.ToLower(message.DirectText) == "ham" {
-		fmt.Println("Echoing ham from @" + message.Session.GetUser(message.User).Name)
-
-		rtm := message.Session.RTM
-		rtm.SendMessage(rtm.NewOutgoingMessage(
-			message.ReplyPrefix+"ham", message.Channel))
-		return true
+func (*HamEcho) HandleMessage(message Message) bool {
+	if strings.ToLower(message.DirectText) != "ham" {
+		return false
 	}
-	return false
+
+	fmt.Println("Echoing ham from @" + message.Session.GetUser(message.User).Name)
+
+	message.Reply("ham")
+	return true
 }

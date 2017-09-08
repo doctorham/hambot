@@ -14,21 +14,30 @@ type Message struct {
 	ReplyPrefix string // non-empty if begins with @hambot
 }
 
+func (m *Message) Reply(text string) {
+	rtm := m.Session.RTM
+	rtm.SendMessage(rtm.NewOutgoingMessage(m.ReplyPrefix+text, m.Channel))
+}
+
+func (m *Message) IsDirect() bool {
+	return m.Session.GetIM(m.Channel) != nil
+}
+
 type MessageHandler interface {
 	HandleMessage(Message) bool // returns true if handled
 }
 
 type Dispatcher struct {
-	session  *Session
-	atHambot *regexp.Regexp
-	handlers []MessageHandler
+	session    *Session
+	reAtHambot *regexp.Regexp
+	handlers   []MessageHandler
 }
 
 func NewDispatcher(session *Session) (*Dispatcher, error) {
 	dispatcher := Dispatcher{session: session}
 
 	var err error
-	dispatcher.atHambot, err = regexp.Compile(
+	dispatcher.reAtHambot, err = regexp.Compile(
 		"^\\s*<@" + session.Info.User.ID + ">(\\s*:)?\\s+(.*?)\\s*$")
 	if err != nil {
 		return nil, err
@@ -37,34 +46,34 @@ func NewDispatcher(session *Session) (*Dispatcher, error) {
 	return &dispatcher, nil
 }
 
-func (this *Dispatcher) AddHandler(handler MessageHandler) {
-	this.handlers = append(this.handlers, handler)
+func (d *Dispatcher) AddHandler(handler MessageHandler) {
+	d.handlers = append(d.handlers, handler)
 }
 
-func (this *Dispatcher) Dispatch(slackMessage *slack.MessageEvent) {
+func (d *Dispatcher) Dispatch(slackMessage *slack.MessageEvent) {
 	var message Message
 	message.MessageEvent = slackMessage
-	message.Session = this.session
+	message.Session = d.session
 
 	// ignore messages sent by another hambot
-	if message.User == this.session.Info.User.ID {
+	if message.User == d.session.Info.User.ID {
 		return
 	}
 
-	matches := this.atHambot.FindStringSubmatch(message.Text)
+	matches := d.reAtHambot.FindStringSubmatch(message.Text)
 	if matches == nil {
 		// accept messages without @hambot tag if sent directly to hambot
-		if this.session.GetIM(message.Channel) != nil {
+		if message.IsDirect() {
 			message.DirectText = message.Text
 		}
 	} else {
 		message.DirectText = matches[2]
-		if this.session.GetIM(message.Channel) == nil {
+		if !message.IsDirect() {
 			message.ReplyPrefix = "<@" + message.User + "> "
 		}
 	}
 
-	for _, handler := range this.handlers {
+	for _, handler := range d.handlers {
 		if handler.HandleMessage(message) {
 			break
 		}

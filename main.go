@@ -13,7 +13,12 @@ import (
 )
 
 var gConfig struct {
-	SlackToken string `json:"slackToken"`
+	SlackToken          string `json:"slackToken"`
+	AwsRegion           string `json:"awsRegion"`
+	AwsBucket           string `json:"awsBucket"`
+	AwsAccessKey        string `json:"awsAccessKey"`
+	AwsSecretAccessKey  string `json:"awsSecretAccessKey"`
+	AnnouncementChannel string `json:"announcementChannel"`
 }
 
 func main() {
@@ -56,7 +61,14 @@ func main() {
 				if dispatcher, err = NewDispatcher(&session); err != nil {
 					panic(err)
 				}
+
 				dispatcher.AddHandler(&HamEcho{})
+
+				if hamPrompt, err := NewHamPrompt(); err == nil {
+					dispatcher.AddHandler(hamPrompt)
+				} else {
+					panic(err)
+				}
 
 			case *slack.MessageEvent:
 				dispatcher.Dispatch(e)
