@@ -19,6 +19,7 @@ var gConfig struct {
 	AwsAccessKey        string `json:"awsAccessKey"`
 	AwsSecretAccessKey  string `json:"awsSecretAccessKey"`
 	AnnouncementChannel string `json:"announcementChannel"`
+	HamagramsURL        string `json:"hamagramsUrl"`
 }
 
 func main() {

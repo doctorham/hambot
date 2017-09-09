@@ -88,8 +88,8 @@ func (p *HamPrompt) HandleMessage(message Message) bool {
 
 			message.Session.Announce(
 				fmt.Sprintf(
-					"New prompt submitted by <@%v>:\n%v\nhttp://the.ham.doctor\nHam a nice day.",
-					message.User, promptWithSpaces))
+					"New prompt submitted by <@%v>:\n%v\n%v\nHam a nice day.",
+					message.User, promptWithSpaces, gConfig.HamagramsURL))
 		},
 		func(err error) {
 			fmt.Printf("Upload failed: %v\n", err)
