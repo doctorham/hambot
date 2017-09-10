@@ -7,6 +7,10 @@ import (
 
 type HamEcho struct{}
 
+func NewHamEcho() *HamEcho {
+	return &HamEcho{}
+}
+
 func (*HamEcho) HandleMessage(message Message) bool {
 	if strings.ToLower(message.DirectText) != "ham" {
 		return false
@@ -14,6 +18,6 @@ func (*HamEcho) HandleMessage(message Message) bool {
 
 	fmt.Println("Echoing ham from @" + message.Session.GetUser(message.User).Name)
 
-	message.Reply("ham")
+	message.Reply("ham :ham:")
 	return true
 }

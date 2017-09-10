@@ -21,9 +21,15 @@ type Session struct {
 	channelsByName map[string]*slack.Channel
 	groupsByName   map[string]*slack.Group
 	imsByName      map[string]*slack.IM
+
+	hamBase string
 }
 
-func (s *Session) Start(client *slack.Client, info *slack.Info, rtm *slack.RTM) {
+func (s *Session) Start(
+	client *slack.Client,
+	info *slack.Info,
+	rtm *slack.RTM,
+) {
 	const channelBufferSize int = 32
 
 	s.Client = client
@@ -62,20 +68,33 @@ func (s *Session) Start(client *slack.Client, info *slack.Info, rtm *slack.RTM) 
 	}
 }
 
-func (s *Session) Announce(text string) error {
-	if gConfig.AnnouncementChannel == "" {
-		return errors.New("No announcement channel configured")
+func (s *Session) HamBase() (string, error) {
+	if s.hamBase != "" {
+		return s.hamBase, nil
+	}
+	if Settings.HamBase == "" {
+		return "", errors.New("No ham base configured")
 	}
 
 	var channelID string
-	if channel := s.GetChannelByName(gConfig.AnnouncementChannel); channel != nil {
+	if channel := s.GetChannelByName(Settings.HamBase); channel != nil {
 		channelID = channel.ID
-	} else if group := s.GetGroupByName(gConfig.AnnouncementChannel); group != nil {
+	} else if group := s.GetGroupByName(Settings.HamBase); group != nil {
 		channelID = group.ID
 	} else {
-		return errors.New("Announcement channel '" + gConfig.AnnouncementChannel + "' not found")
+		return "", errors.New("Channel '" + Settings.HamBase + "' not found")
 	}
 
+	s.hamBase = channelID
+	return channelID, nil
+}
+
+func (s *Session) Announce(text string) error {
+	var channelID string
+	var err error
+	if channelID, err = s.HamBase(); err != nil {
+		return err
+	}
 	s.RTM.SendMessage(s.RTM.NewOutgoingMessage(text, channelID))
 	return nil
 }

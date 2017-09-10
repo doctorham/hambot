@@ -38,7 +38,7 @@ func NewDispatcher(session *Session) (*Dispatcher, error) {
 
 	var err error
 	dispatcher.reAtHambot, err = regexp.Compile(
-		"^\\s*<@" + session.Info.User.ID + ">(\\s*:)?\\s+(.*?)\\s*$")
+		`^\s*<@` + session.Info.User.ID + `>(\s*:)?\s+(.*?)\s*$`)
 	if err != nil {
 		return nil, err
 	}

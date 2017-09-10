@@ -12,14 +12,14 @@ import (
 	"github.com/shibukawa/configdir"
 )
 
-var gConfig struct {
-	SlackToken          string `json:"slackToken"`
-	AwsRegion           string `json:"awsRegion"`
-	AwsBucket           string `json:"awsBucket"`
-	AwsAccessKey        string `json:"awsAccessKey"`
-	AwsSecretAccessKey  string `json:"awsSecretAccessKey"`
-	AnnouncementChannel string `json:"announcementChannel"`
-	HamagramsURL        string `json:"hamagramsUrl"`
+var Settings struct {
+	SlackToken         string `json:"slackToken"`
+	AwsRegion          string `json:"awsRegion"`
+	AwsBucket          string `json:"awsBucket"`
+	AwsAccessKey       string `json:"awsAccessKey"`
+	AwsSecretAccessKey string `json:"awsSecretAccessKey"`
+	HamBase            string `json:"hamBase"`
+	HamagramsURL       string `json:"hamagramsUrl"`
 }
 
 func main() {
@@ -28,17 +28,15 @@ func main() {
 		panic(err)
 	}
 
-	client := slack.New(gConfig.SlackToken)
+	client := slack.New(Settings.SlackToken)
 	rtm := client.NewRTM()
 	go rtm.ManageConnection()
 
-	done := false
 	onNonFatalError := func(e error) {
 		fmt.Printf("Error: %v\n", e)
 	}
 	onFatalError := func(e error) {
 		fmt.Printf("Fatal error: %v\n", e)
-		done = true
 	}
 
 	fmt.Println("Hambot activated")
@@ -46,6 +44,7 @@ func main() {
 	var session Session
 	var dispatcher *Dispatcher
 
+EventLoop:
 	for {
 		select {
 		case callback := <-session.Callbacks:
@@ -53,8 +52,7 @@ func main() {
 
 		case event, ok := <-rtm.IncomingEvents:
 			if !ok {
-				done = true
-				break
+				break EventLoop
 			}
 			switch e := event.Data.(type) {
 			case *slack.ConnectedEvent:
@@ -63,7 +61,7 @@ func main() {
 					panic(err)
 				}
 
-				dispatcher.AddHandler(&HamEcho{})
+				dispatcher.AddHandler(NewHamEcho())
 
 				if hamPrompt, err := NewHamPrompt(); err == nil {
 					dispatcher.AddHandler(hamPrompt)
@@ -89,18 +87,16 @@ func main() {
 			// fatal errors
 			case *slack.ConnectionErrorEvent:
 				onFatalError(e)
+				break EventLoop
 			case *slack.InvalidAuthEvent:
 				onFatalError(errors.New("InvalidAuthEvent"))
+				break EventLoop
 			}
-		}
-
-		if done {
-			break
 		}
 	}
 }
 
-func loadConfig() error {
+func loadConfig() (err error) {
 	var configPath string
 	if len(os.Args) > 1 {
 		configPath = os.Args[1]
@@ -113,17 +109,11 @@ func loadConfig() error {
 	}
 
 	var configData []byte
-	var err error
-
 	configData, err = ioutil.ReadFile(configPath)
 	if err != nil {
-		return err
+		return
 	}
 
-	err = json.Unmarshal(configData, &gConfig)
-	if err != nil {
-		return err
-	}
-
-	return nil
+	err = json.Unmarshal(configData, &Settings)
+	return
 }

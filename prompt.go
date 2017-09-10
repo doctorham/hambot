@@ -25,7 +25,7 @@ func NewHamPrompt() (*HamPrompt, error) {
 	this := HamPrompt{}
 
 	var err error
-	this.rePrompt, err = regexp.Compile("^prompt\\s+(.+)$")
+	this.rePrompt, err = regexp.Compile(`^prompt\s+(.+)$`)
 	if err != nil {
 		return nil, err
 	}
@@ -49,7 +49,7 @@ func (p *HamPrompt) HandleMessage(message Message) bool {
 	}
 
 	if p.uploading {
-		message.Reply("Sorry, I'm currently uploading a prompt. ham")
+		message.Reply("Sorry, I'm currently uploading a prompt. :ham:")
 		return true
 	}
 
@@ -58,22 +58,22 @@ func (p *HamPrompt) HandleMessage(message Message) bool {
 	promptWithSpaces := p.filterPrompt(unfilteredPrompt, true)
 
 	if len(prompt) < minPromptLength {
-		message.Reply("Sorry, that prompt is too short. ham")
+		message.Reply("Sorry, that prompt is too short. :ham:")
 		return true
 	}
 	if len(prompt) > maxPromptLength {
-		message.Reply("Sorry, that prompt is too long. ham")
+		message.Reply("Sorry, that prompt is too long. :ham:")
 		return true
 	}
 
 	if p.tooManyChanges(message.User) {
-		message.Reply("Sorry, you've changed the prompt too many times recently. ham")
+		message.Reply("Sorry, you've changed the prompt too many times recently. :ham:")
 		return true
 	}
 
 	data, err := p.generateConfig(prompt)
 	if err != nil {
-		message.Reply("Sorry, something went wrong. ham")
+		message.Reply("Sorry, something went wrong. :ham:")
 		fmt.Println(err)
 		return true
 	}
@@ -83,17 +83,19 @@ func (p *HamPrompt) HandleMessage(message Message) bool {
 	p.uploading = true
 	go p.upload(message, data,
 		func() {
-			message.Reply("I uploaded the prompt. ham")
+			if hamBase, _ := message.Session.HamBase(); message.Channel != hamBase {
+				message.Reply("I uploaded the prompt. :ham:")
+			}
 			p.history[message.User] = append(p.history[message.User], time.Now())
 
 			message.Session.Announce(
 				fmt.Sprintf(
-					"New prompt submitted by <@%v>:\n%v\n%v\nHam a nice day.",
-					message.User, promptWithSpaces, gConfig.HamagramsURL))
+					"New prompt submitted by <@%v>:\n:sparkles:*%v*:sparkles:\n%v\nHam a nice day. :ham:",
+					message.User, promptWithSpaces, Settings.HamagramsURL))
 		},
 		func(err error) {
 			fmt.Printf("Upload failed: %v\n", err)
-			message.Reply("Sorry, I couldn't upload the prompt. ham")
+			message.Reply("Sorry, I couldn't upload the prompt. :ham:")
 		},
 		func() {
 			p.uploading = false
@@ -102,7 +104,10 @@ func (p *HamPrompt) HandleMessage(message Message) bool {
 	return true
 }
 
-func (*HamPrompt) filterPrompt(prompt string, preserveSpaces bool) string {
+func (*HamPrompt) filterPrompt(
+	prompt string,
+	preserveSpaces bool,
+) string {
 	// convert to uppercase and remove non-alphabetic characters
 	return strings.Map(
 		func(r rune) rune {
@@ -133,23 +138,26 @@ func (p *HamPrompt) tooManyChanges(user string) bool {
 	return len(history) >= maxHistoryLength
 }
 
-func (p *HamPrompt) generateConfig(prompt string) ([]byte, error) {
-	var err error
-	var data []byte
+func (p *HamPrompt) generateConfig(prompt string) (data []byte, err error) {
 	data, err = json.Marshal(&hamagramConfig{
 		Prompt: prompt,
 	})
 	if err != nil {
-		return nil, err
+		return
 	}
 
 	data = append([]byte("config="), data...)
 	data = append(data, byte(';'))
-
-	return data, nil
+	return
 }
 
-func (p *HamPrompt) upload(message Message, data []byte, then func(), catch func(error), finally func()) {
+func (p *HamPrompt) upload(
+	message Message,
+	data []byte,
+	then func(),
+	catch func(error),
+	finally func(),
+) {
 	defer func() {
 		message.Session.Callbacks <- finally
 	}()
@@ -161,9 +169,9 @@ func (p *HamPrompt) upload(message Message, data []byte, then func(), catch func
 	}
 
 	awsSession, err := session.NewSession(&aws.Config{
-		Region: aws.String(gConfig.AwsRegion),
+		Region: aws.String(Settings.AwsRegion),
 		Credentials: credentials.NewStaticCredentials(
-			gConfig.AwsAccessKey, gConfig.AwsSecretAccessKey, ""),
+			Settings.AwsAccessKey, Settings.AwsSecretAccessKey, ""),
 	})
 	if err != nil {
 		onError(err)
@@ -173,7 +181,7 @@ func (p *HamPrompt) upload(message Message, data []byte, then func(), catch func
 	uploader := s3manager.NewUploader(awsSession)
 
 	_, err = uploader.Upload(&s3manager.UploadInput{
-		Bucket:      aws.String(gConfig.AwsBucket),
+		Bucket:      aws.String(Settings.AwsBucket),
 		Key:         aws.String("config.js"),
 		ContentType: aws.String("application/javascript"),
 		ACL:         aws.String("public-read"),
