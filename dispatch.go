@@ -60,31 +60,31 @@ func (d *Dispatcher) AddHandler(handler MessageHandler) {
 
 // Dispatch sends a Message to each registered MessageHandler in turn
 // until it is handled.
-func (d *Dispatcher) Dispatch(slackMessage *slack.MessageEvent) {
-	var message Message
-	message.MessageEvent = slackMessage
-	message.Session = d.session
+func (d *Dispatcher) Dispatch(slackMsg *slack.MessageEvent) {
+	var msg Message
+	msg.MessageEvent = slackMsg
+	msg.Session = d.session
 
 	// ignore messages sent by another hambot
-	if message.User == d.session.Info.User.ID {
+	if msg.User == d.session.Info.User.ID {
 		return
 	}
 
-	matches := d.reAtHambot.FindStringSubmatch(message.Text)
+	matches := d.reAtHambot.FindStringSubmatch(msg.Text)
 	if matches == nil {
 		// accept messages without @hambot tag if sent directly to hambot
-		if message.IsDirect() {
-			message.DirectText = message.Text
+		if msg.IsDirect() {
+			msg.DirectText = msg.Text
 		}
 	} else {
-		message.DirectText = matches[2]
-		if !message.IsDirect() {
-			message.ReplyPrefix = "<@" + message.User + "> "
+		msg.DirectText = matches[2]
+		if !msg.IsDirect() {
+			msg.ReplyPrefix = "<@" + msg.User + "> "
 		}
 	}
 
 	for _, handler := range d.handlers {
-		if handler.HandleMessage(message) {
+		if handler.HandleMessage(msg) {
 			break
 		}
 	}

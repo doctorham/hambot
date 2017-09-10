@@ -42,17 +42,17 @@ type hamagramConfig struct {
 }
 
 // HandleMessage handles a message.
-func (p *HamPrompt) HandleMessage(message Message) bool {
+func (p *HamPrompt) HandleMessage(msg Message) bool {
 	const minPromptLength = 2
 	const maxPromptLength = 64
 
-	matches := p.rePrompt.FindStringSubmatch(message.DirectText)
+	matches := p.rePrompt.FindStringSubmatch(msg.DirectText)
 	if matches == nil {
 		return false
 	}
 
 	if p.uploading {
-		message.Reply("Sorry, I'm currently uploading a prompt. :ham:")
+		msg.Reply("Sorry, I'm currently uploading a prompt. :ham:")
 		return true
 	}
 
@@ -61,44 +61,44 @@ func (p *HamPrompt) HandleMessage(message Message) bool {
 	promptWithSpaces := p.filterPrompt(unfilteredPrompt, true)
 
 	if len(prompt) < minPromptLength {
-		message.Reply("Sorry, that prompt is too short. :ham:")
+		msg.Reply("Sorry, that prompt is too short. :ham:")
 		return true
 	}
 	if len(prompt) > maxPromptLength {
-		message.Reply("Sorry, that prompt is too long. :ham:")
+		msg.Reply("Sorry, that prompt is too long. :ham:")
 		return true
 	}
 
-	if p.tooManyChanges(message.User) {
-		message.Reply("Sorry, you've changed the prompt too many times recently. :ham:")
+	if p.tooManyChanges(msg.User) {
+		msg.Reply("Sorry, you've changed the prompt too many times recently. :ham:")
 		return true
 	}
 
 	data, err := p.generateConfig(prompt)
 	if err != nil {
-		message.Reply("Sorry, something went wrong. :ham:")
+		msg.Reply("Sorry, something went wrong. :ham:")
 		fmt.Println(err)
 		return true
 	}
 
-	fmt.Printf("Prompt from @%v: %v\n", message.Session.User(message.User).Name, string(data))
+	fmt.Printf("Prompt from @%v: %v\n", msg.Session.User(msg.User).Name, string(data))
 
 	p.uploading = true
-	go p.upload(message, data,
+	go p.upload(msg, data,
 		func() {
-			if hamBase, _ := message.Session.HamBase(); message.Channel != hamBase {
-				message.Reply("I uploaded the prompt. :ham:")
+			if hamBase, _ := msg.Session.HamBase(); msg.Channel != hamBase {
+				msg.Reply("I uploaded the prompt. :ham:")
 			}
-			p.history[message.User] = append(p.history[message.User], time.Now())
+			p.history[msg.User] = append(p.history[msg.User], time.Now())
 
-			message.Session.Announce(
+			msg.Session.Announce(
 				fmt.Sprintf(
 					"New prompt submitted by <@%v>:\n:sparkles:*%v*:sparkles:\n%v\nHam a nice day. :ham:",
-					message.User, promptWithSpaces, Settings.HamagramsURL))
+					msg.User, promptWithSpaces, Settings.HamagramsURL))
 		},
 		func(err error) {
 			fmt.Printf("Upload failed: %v\n", err)
-			message.Reply("Sorry, I couldn't upload the prompt. :ham:")
+			msg.Reply("Sorry, I couldn't upload the prompt. :ham:")
 		},
 		func() {
 			p.uploading = false
@@ -155,18 +155,18 @@ func (p *HamPrompt) generateConfig(prompt string) (data []byte, err error) {
 }
 
 func (p *HamPrompt) upload(
-	message Message,
+	msg Message,
 	data []byte,
 	then func(),
 	catch func(error),
 	finally func(),
 ) {
 	defer func() {
-		message.Session.Callbacks <- finally
+		msg.Session.Callbacks <- finally
 	}()
 
 	onError := func(err error) {
-		message.Session.Callbacks <- func() {
+		msg.Session.Callbacks <- func() {
 			catch(err)
 		}
 	}
@@ -195,5 +195,5 @@ func (p *HamPrompt) upload(
 		return
 	}
 
-	message.Session.Callbacks <- then
+	msg.Session.Callbacks <- then
 }

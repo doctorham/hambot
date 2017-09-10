@@ -14,13 +14,13 @@ func NewHamEcho() *HamEcho {
 }
 
 // HandleMessage handles a Message.
-func (*HamEcho) HandleMessage(message Message) bool {
-	if strings.ToLower(message.DirectText) != "ham" {
+func (*HamEcho) HandleMessage(msg Message) bool {
+	if strings.ToLower(msg.DirectText) != "ham" {
 		return false
 	}
 
-	fmt.Println("Echoing ham from @" + message.Session.User(message.User).Name)
+	fmt.Println("Echoing ham from @" + msg.Session.User(msg.User).Name)
 
-	message.Reply("ham :ham:")
+	msg.Reply("ham :ham:")
 	return true
 }
