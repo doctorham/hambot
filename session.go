@@ -6,6 +6,7 @@ import (
 	"github.com/nlopes/slack"
 )
 
+// Session contains information about a Slack session.
 type Session struct {
 	Client    *slack.Client
 	Info      *slack.Info
@@ -25,6 +26,7 @@ type Session struct {
 	hamBase string
 }
 
+// Start associates a Session with a running Slack session.
 func (s *Session) Start(
 	client *slack.Client,
 	info *slack.Info,
@@ -68,6 +70,7 @@ func (s *Session) Start(
 	}
 }
 
+// HamBase returns the channel ID used for announcements.
 func (s *Session) HamBase() (string, error) {
 	if s.hamBase != "" {
 		return s.hamBase, nil
@@ -77,9 +80,9 @@ func (s *Session) HamBase() (string, error) {
 	}
 
 	var channelID string
-	if channel := s.GetChannelByName(Settings.HamBase); channel != nil {
+	if channel := s.ChannelByName(Settings.HamBase); channel != nil {
 		channelID = channel.ID
-	} else if group := s.GetGroupByName(Settings.HamBase); group != nil {
+	} else if group := s.GroupByName(Settings.HamBase); group != nil {
 		channelID = group.ID
 	} else {
 		return "", errors.New("Channel '" + Settings.HamBase + "' not found")
@@ -89,6 +92,7 @@ func (s *Session) HamBase() (string, error) {
 	return channelID, nil
 }
 
+// Announce sends a message to the channel returned by HamBase().
 func (s *Session) Announce(text string) error {
 	var channelID string
 	var err error
@@ -99,34 +103,42 @@ func (s *Session) Announce(text string) error {
 	return nil
 }
 
-func (s *Session) GetUser(id string) *slack.User {
+// User returns the User identified by the given ID.
+func (s *Session) User(id string) *slack.User {
 	return s.usersByID[id]
 }
 
-func (s *Session) GetChannel(id string) *slack.Channel {
+// Channel returns the Channel identified by the given ID.
+func (s *Session) Channel(id string) *slack.Channel {
 	return s.channelsByID[id]
 }
 
-func (s *Session) GetGroup(id string) *slack.Group {
+// Group returns the Group identified by the given ID.
+func (s *Session) Group(id string) *slack.Group {
 	return s.groupsByID[id]
 }
 
-func (s *Session) GetIM(id string) *slack.IM {
+// IM returns the IM identified by the given ID.
+func (s *Session) IM(id string) *slack.IM {
 	return s.imsByID[id]
 }
 
-func (s *Session) GetUserByName(id string) *slack.User {
-	return s.usersByName[id]
+// UserByName returns the User nameentified by the given name.
+func (s *Session) UserByName(name string) *slack.User {
+	return s.usersByName[name]
 }
 
-func (s *Session) GetChannelByName(id string) *slack.Channel {
-	return s.channelsByName[id]
+// ChannelByName returns the Channel nameentified by the given name.
+func (s *Session) ChannelByName(name string) *slack.Channel {
+	return s.channelsByName[name]
 }
 
-func (s *Session) GetGroupByName(id string) *slack.Group {
-	return s.groupsByName[id]
+// GroupByName returns the Group nameentified by the given name.
+func (s *Session) GroupByName(name string) *slack.Group {
+	return s.groupsByName[name]
 }
 
-func (s *Session) GetIMByName(id string) *slack.IM {
-	return s.imsByName[id]
+// IMByName returns the IM nameentified by the given name.
+func (s *Session) IMByName(name string) *slack.IM {
+	return s.imsByName[name]
 }

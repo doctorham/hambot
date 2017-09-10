@@ -15,12 +15,14 @@ import (
 	"github.com/aws/aws-sdk-go/service/s3/s3manager"
 )
 
+// HamPrompt uploads a new hamagram prompt.
 type HamPrompt struct {
 	rePrompt  *regexp.Regexp
 	uploading bool
 	history   map[string]([]time.Time)
 }
 
+// NewHamPrompt creates a new HamPrompt.
 func NewHamPrompt() (*HamPrompt, error) {
 	this := HamPrompt{}
 
@@ -39,6 +41,7 @@ type hamagramConfig struct {
 	Prompt string `json:"prompt"`
 }
 
+// HandleMessage handles a message.
 func (p *HamPrompt) HandleMessage(message Message) bool {
 	const minPromptLength = 2
 	const maxPromptLength = 64
@@ -78,7 +81,7 @@ func (p *HamPrompt) HandleMessage(message Message) bool {
 		return true
 	}
 
-	fmt.Printf("Prompt from @%v: %v\n", message.Session.GetUser(message.User).Name, string(data))
+	fmt.Printf("Prompt from @%v: %v\n", message.Session.User(message.User).Name, string(data))
 
 	p.uploading = true
 	go p.upload(message, data,

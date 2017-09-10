@@ -6,6 +6,7 @@ import (
 	"github.com/nlopes/slack"
 )
 
+// Message represents a Slack message.
 type Message struct {
 	*slack.MessageEvent
 
@@ -14,25 +15,31 @@ type Message struct {
 	ReplyPrefix string // non-empty if begins with @hambot
 }
 
+// Reply sends a reply to a Message on its channel, prefixing it with the
+// recepient's name if it is not a direct message.
 func (m *Message) Reply(text string) {
 	rtm := m.Session.RTM
 	rtm.SendMessage(rtm.NewOutgoingMessage(m.ReplyPrefix+text, m.Channel))
 }
 
+// IsDirect returns whether the Message is a direct message (not on a channel).
 func (m *Message) IsDirect() bool {
-	return m.Session.GetIM(m.Channel) != nil
+	return m.Session.IM(m.Channel) != nil
 }
 
+// MessageHandler handles messages.
 type MessageHandler interface {
 	HandleMessage(Message) bool // returns true if handled
 }
 
+// Dispatcher sends Messages to registered handlers.
 type Dispatcher struct {
 	session    *Session
 	reAtHambot *regexp.Regexp
 	handlers   []MessageHandler
 }
 
+// NewDispatcher creates a new Dispatcher.
 func NewDispatcher(session *Session) (*Dispatcher, error) {
 	dispatcher := Dispatcher{session: session}
 
@@ -46,10 +53,13 @@ func NewDispatcher(session *Session) (*Dispatcher, error) {
 	return &dispatcher, nil
 }
 
+// AddHandler registers a MessageHandler with a Dispatcher.
 func (d *Dispatcher) AddHandler(handler MessageHandler) {
 	d.handlers = append(d.handlers, handler)
 }
 
+// Dispatch sends a Message to each registered MessageHandler in turn
+// until it is handled.
 func (d *Dispatcher) Dispatch(slackMessage *slack.MessageEvent) {
 	var message Message
 	message.MessageEvent = slackMessage

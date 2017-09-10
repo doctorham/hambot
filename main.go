@@ -12,6 +12,7 @@ import (
 	"github.com/shibukawa/configdir"
 )
 
+// Settings contains the values specified in hambot's configuration file.
 var Settings struct {
 	SlackToken         string `json:"slackToken"`
 	AwsRegion          string `json:"awsRegion"`
