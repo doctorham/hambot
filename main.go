@@ -14,13 +14,13 @@ import (
 
 // Settings contains the values specified in hambot's configuration file.
 var Settings struct {
-	SlackToken         string `json:"slackToken"`
-	AwsRegion          string `json:"awsRegion"`
-	AwsBucket          string `json:"awsBucket"`
-	AwsAccessKey       string `json:"awsAccessKey"`
-	AwsSecretAccessKey string `json:"awsSecretAccessKey"`
-	HamBase            string `json:"hamBase"`
-	HamagramsURL       string `json:"hamagramsUrl"`
+	SlackToken         string `json:"slackToken"`         // Slack API token
+	AwsRegion          string `json:"awsRegion"`          // AWS region (for prompt upload)
+	AwsBucket          string `json:"awsBucket"`          // AWS bucket name (for prompt upload)
+	AwsAccessKey       string `json:"awsAccessKey"`       // AWS access key (for prompt upload)
+	AwsSecretAccessKey string `json:"awsSecretAccessKey"` // AWS secret access key (for prompt upload)
+	HamBase            string `json:"hamBase"`            // Channel used for announcements
+	HamagramsURL       string `json:"hamagramsUrl"`       // URL announced by prompt uploader
 }
 
 func main() {
