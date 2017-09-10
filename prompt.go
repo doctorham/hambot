@@ -1,18 +1,11 @@
 package main
 
 import (
-	"bytes"
-	"encoding/json"
 	"fmt"
 	"regexp"
 	"strings"
 	"time"
 	"unicode"
-
-	"github.com/aws/aws-sdk-go/aws"
-	"github.com/aws/aws-sdk-go/aws/credentials"
-	"github.com/aws/aws-sdk-go/aws/session"
-	"github.com/aws/aws-sdk-go/service/s3/s3manager"
 )
 
 // HamPrompt uploads a new hamagram prompt.
@@ -35,10 +28,6 @@ func NewHamPrompt() (*HamPrompt, error) {
 	this.history = make(map[string]([]time.Time))
 
 	return &this, nil
-}
-
-type hamagramConfig struct {
-	Prompt string `json:"prompt"`
 }
 
 // HandleMessage handles a message.
@@ -74,17 +63,15 @@ func (p *HamPrompt) HandleMessage(msg Message) bool {
 		return true
 	}
 
-	data, err := p.generateConfig(prompt)
-	if err != nil {
-		msg.Reply("Sorry, something went wrong. :ham:")
-		fmt.Println(err)
-		return true
-	}
-
-	fmt.Printf("Prompt from @%v: %v\n", msg.Session.User(msg.User).Name, string(data))
+	fmt.Printf("Prompt from @%v: %v\n", msg.Session.User(msg.User).Name, unfilteredPrompt)
 
 	p.uploading = true
-	go p.upload(msg, data,
+
+	config := HamConfig{
+		Prompt: prompt,
+	}
+
+	go config.Upload(msg.Session,
 		func() {
 			if hamBase, _ := msg.Session.HamBase(); msg.Channel != hamBase {
 				msg.Reply("I uploaded the prompt. :ham:")
@@ -139,61 +126,4 @@ func (p *HamPrompt) tooManyChanges(user string) bool {
 	p.history[user] = history
 
 	return len(history) >= maxHistoryLength
-}
-
-func (p *HamPrompt) generateConfig(prompt string) (data []byte, err error) {
-	data, err = json.Marshal(&hamagramConfig{
-		Prompt: prompt,
-	})
-	if err != nil {
-		return
-	}
-
-	data = append([]byte("config="), data...)
-	data = append(data, byte(';'))
-	return
-}
-
-func (p *HamPrompt) upload(
-	msg Message,
-	data []byte,
-	then func(),
-	catch func(error),
-	finally func(),
-) {
-	defer func() {
-		msg.Session.Callbacks <- finally
-	}()
-
-	onError := func(err error) {
-		msg.Session.Callbacks <- func() {
-			catch(err)
-		}
-	}
-
-	awsSession, err := session.NewSession(&aws.Config{
-		Region: aws.String(Settings.AwsRegion),
-		Credentials: credentials.NewStaticCredentials(
-			Settings.AwsAccessKey, Settings.AwsSecretAccessKey, ""),
-	})
-	if err != nil {
-		onError(err)
-		return
-	}
-
-	uploader := s3manager.NewUploader(awsSession)
-
-	_, err = uploader.Upload(&s3manager.UploadInput{
-		Bucket:      aws.String(Settings.AwsBucket),
-		Key:         aws.String("config.js"),
-		ContentType: aws.String("application/javascript"),
-		ACL:         aws.String("public-read"),
-		Body:        bytes.NewReader(data),
-	})
-	if err != nil {
-		onError(err)
-		return
-	}
-
-	msg.Session.Callbacks <- then
 }
