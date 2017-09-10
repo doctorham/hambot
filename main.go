@@ -13,6 +13,7 @@ import (
 )
 
 // Settings contains the values specified in hambot's configuration file.
+// Some values are optional.
 var Settings struct {
 	SlackToken         string `json:"slackToken"`         // Slack API token
 	AwsRegion          string `json:"awsRegion"`          // AWS region (for prompt upload)
@@ -33,11 +34,11 @@ func main() {
 	rtm := client.NewRTM()
 	go rtm.ManageConnection()
 
-	onNonFatalError := func(e error) {
-		fmt.Printf("Error: %v\n", e)
+	onNonFatalError := func(err error) {
+		fmt.Printf("Error: %v\n", err)
 	}
-	onFatalError := func(e error) {
-		fmt.Printf("Fatal error: %v\n", e)
+	onFatalError := func(err error) {
+		fmt.Printf("Fatal error: %v\n", err)
 	}
 
 	fmt.Println("Hambot activated")
@@ -45,49 +46,52 @@ func main() {
 	var session Session
 	var dispatcher *Dispatcher
 
+	onConnect := func(event *slack.ConnectedEvent) {
+		session.Start(client, event.Info, rtm)
+		if dispatcher, err = NewDispatcher(&session); err != nil {
+			panic(err)
+		}
+
+		dispatcher.AddHandler(NewHamEcho())
+
+		if hamPrompt, err := NewHamPrompt(); err == nil {
+			dispatcher.AddHandler(hamPrompt)
+		} else {
+			fmt.Printf("Error creating HamPrompt: %v\n", err)
+		}
+	}
+
 EventLoop:
 	for {
 		select {
 		case callback := <-session.Callbacks:
 			callback()
 
-		case event, ok := <-rtm.IncomingEvents:
+		case baseEvent, ok := <-rtm.IncomingEvents:
 			if !ok {
 				break EventLoop
 			}
-			switch e := event.Data.(type) {
+			switch event := baseEvent.Data.(type) {
 			case *slack.ConnectedEvent:
-				session.Start(client, e.Info, rtm)
-				if dispatcher, err = NewDispatcher(&session); err != nil {
-					panic(err)
-				}
-
-				dispatcher.AddHandler(NewHamEcho())
-
-				if hamPrompt, err := NewHamPrompt(); err == nil {
-					dispatcher.AddHandler(hamPrompt)
-				} else {
-					panic(err)
-				}
-
+				onConnect(event)
 			case *slack.MessageEvent:
-				dispatcher.Dispatch(e)
+				dispatcher.Dispatch(event)
 
 			// non-fatal errors
 			case *slack.UnmarshallingErrorEvent:
-				onNonFatalError(e)
+				onNonFatalError(event)
 			case *slack.MessageTooLongEvent:
-				onNonFatalError(e)
+				onNonFatalError(event)
 			case *slack.OutgoingErrorEvent:
-				onNonFatalError(e)
+				onNonFatalError(event)
 			case *slack.IncomingEventError:
-				onNonFatalError(e)
+				onNonFatalError(event)
 			case *slack.AckErrorEvent:
-				onNonFatalError(e)
+				onNonFatalError(event)
 
 			// fatal errors
 			case *slack.ConnectionErrorEvent:
-				onFatalError(e)
+				onFatalError(event)
 				break EventLoop
 			case *slack.InvalidAuthEvent:
 				onFatalError(errors.New("InvalidAuthEvent"))
