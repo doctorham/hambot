@@ -2,6 +2,8 @@ package main
 
 import (
 	"regexp"
+	"strings"
+	"unicode"
 
 	"github.com/nlopes/slack"
 )
@@ -74,7 +76,7 @@ func (d *Dispatcher) Dispatch(slackMsg *slack.MessageEvent) {
 	if matches == nil {
 		// accept messages without @hambot tag if sent directly to hambot
 		if msg.IsDirect() {
-			msg.DirectText = msg.Text
+			msg.DirectText = strings.TrimFunc(msg.Text, unicode.IsSpace)
 		}
 	} else {
 		msg.DirectText = matches[2]
