@@ -98,16 +98,36 @@ EventLoop:
 }
 
 func loadConfig() (err error) {
+	const appName = "hambot"
+	const configName = "config.json"
+
 	var configPath string
+
+	// load from argument if given
 	if len(os.Args) > 1 {
 		configPath = os.Args[1]
-	} else {
-		configDirs := configdir.New("", "hambot").QueryFolders(configdir.Existing)
+	}
+
+	// try executablePath/configName
+	if configPath == "" {
+		if exePath, err := os.Executable(); err == nil {
+			configPath = filepath.Join(filepath.Dir(exePath), configName)
+			if _, err = os.Stat(configPath); err != nil {
+				configPath = ""
+			}
+		}
+	}
+
+	// try standardConfigPath/appName/configName
+	if configPath == "" {
+		configDirs := configdir.New("", appName).QueryFolders(configdir.Existing)
 		if len(configDirs) == 0 {
 			return errors.New("Missing configuration directory")
 		}
-		configPath = filepath.Join(configDirs[0].Path, "config.json")
+		configPath = filepath.Join(configDirs[0].Path, configName)
 	}
+
+	fmt.Printf("Loading configuration from %v\n", configPath)
 
 	var configData []byte
 	configData, err = ioutil.ReadFile(configPath)
