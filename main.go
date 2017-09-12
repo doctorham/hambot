@@ -22,6 +22,7 @@ var Settings struct {
 	AwsSecretAccessKey string `json:"awsSecretAccessKey"` // AWS secret access key (for prompt upload)
 	HamBase            string `json:"hamBase"`            // Channel used for announcements
 	HamagramsURL       string `json:"hamagramsUrl"`       // URL announced by prompt uploader
+	Announcer          string `json:"announcer"`          // User allowed to use the 'announce' command
 }
 
 func main() {
@@ -58,6 +59,12 @@ func main() {
 			dispatcher.AddHandler(hamPrompt)
 		} else {
 			fmt.Printf("Error creating HamPrompt: %v\n", err)
+		}
+
+		if hamAnnounce, err := NewHamAnnounce(); err == nil {
+			dispatcher.AddHandler(hamAnnounce)
+		} else {
+			fmt.Printf("Error creating HamAnnounce: %v\n", err)
 		}
 	}
 
