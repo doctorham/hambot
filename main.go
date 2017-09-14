@@ -35,10 +35,10 @@ func main() {
 	rtm := client.NewRTM()
 	go rtm.ManageConnection()
 
-	onNonFatalError := func(err error) {
+	printNonFatalError := func(err error) {
 		fmt.Printf("Error: %v\n", err)
 	}
-	onFatalError := func(err error) {
+	printFatalError := func(err error) {
 		fmt.Printf("Fatal error: %v\n", err)
 	}
 
@@ -86,22 +86,49 @@ EventLoop:
 
 			// non-fatal errors
 			case *slack.UnmarshallingErrorEvent:
-				onNonFatalError(event)
+				if event == nil {
+					fmt.Println("Error: UnmarshallingErrorEvent(nil)")
+				} else {
+					printNonFatalError(event)
+				}
 			case *slack.MessageTooLongEvent:
-				onNonFatalError(event)
+				if event == nil {
+					fmt.Println("Error: MessageTooLongEvent(nil)")
+				} else {
+					printNonFatalError(event)
+				}
 			case *slack.OutgoingErrorEvent:
-				onNonFatalError(event)
+				if event == nil {
+					fmt.Println("Error: OutgoingErrorEvent(nil)")
+				} else {
+					printNonFatalError(event)
+				}
 			case *slack.IncomingEventError:
-				onNonFatalError(event)
+				if event == nil {
+					fmt.Println("Error: IncomingEventError(nil)")
+				} else {
+					printNonFatalError(event)
+				}
 			case *slack.AckErrorEvent:
-				onNonFatalError(event)
+				if event == nil {
+					fmt.Println("Error: AckErrorEvent(nil)")
+				} else {
+					printNonFatalError(event)
+				}
+			case *slack.ConnectionErrorEvent:
+				if event == nil {
+					fmt.Println("Error: ConnectionErrorEvent(nil)")
+				} else {
+					printNonFatalError(event)
+				}
 
 			// fatal errors
-			case *slack.ConnectionErrorEvent:
-				onFatalError(event)
-				break EventLoop
 			case *slack.InvalidAuthEvent:
-				onFatalError(errors.New("InvalidAuthEvent"))
+				if event == nil {
+					fmt.Println("Error: InvalidAuthEvent(nil)")
+				} else {
+					printFatalError(errors.New("InvalidAuthEvent"))
+				}
 				break EventLoop
 			}
 		}
