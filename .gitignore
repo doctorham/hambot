@@ -16,3 +16,5 @@
 /debug
 /hambot
 /config.json
+/vendor
+/Gopkg.lock
