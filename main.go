@@ -3,7 +3,7 @@ package main
 import (
 	"encoding/json"
 	"errors"
-	"fmt"
+	"log"
 	"io/ioutil"
 	"os"
 	"path/filepath"
@@ -36,13 +36,13 @@ func main() {
 	go rtm.ManageConnection()
 
 	printNonFatalError := func(err error) {
-		fmt.Printf("Error: %v\n", err)
+		log.Printf("Error: %v\n", err)
 	}
 	printFatalError := func(err error) {
-		fmt.Printf("Fatal error: %v\n", err)
+		log.Printf("Fatal error: %v\n", err)
 	}
 
-	fmt.Println("Hambot activated")
+	log.Println("Hambot activated")
 
 	var session Session
 	var dispatcher *Dispatcher
@@ -58,13 +58,13 @@ func main() {
 		if hamPrompt, err := NewHamPrompt(); err == nil {
 			dispatcher.AddHandler(hamPrompt)
 		} else {
-			fmt.Printf("Error creating HamPrompt: %v\n", err)
+			log.Printf("Error creating HamPrompt: %v\n", err)
 		}
 
 		if hamAnnounce, err := NewHamAnnounce(); err == nil {
 			dispatcher.AddHandler(hamAnnounce)
 		} else {
-			fmt.Printf("Error creating HamAnnounce: %v\n", err)
+			log.Printf("Error creating HamAnnounce: %v\n", err)
 		}
 	}
 
@@ -87,37 +87,37 @@ EventLoop:
 			// non-fatal errors
 			case *slack.UnmarshallingErrorEvent:
 				if event == nil {
-					fmt.Println("Error: UnmarshallingErrorEvent(nil)")
+					log.Println("Error: UnmarshallingErrorEvent(nil)")
 				} else {
 					printNonFatalError(event)
 				}
 			case *slack.MessageTooLongEvent:
 				if event == nil {
-					fmt.Println("Error: MessageTooLongEvent(nil)")
+					log.Println("Error: MessageTooLongEvent(nil)")
 				} else {
 					printNonFatalError(event)
 				}
 			case *slack.OutgoingErrorEvent:
 				if event == nil {
-					fmt.Println("Error: OutgoingErrorEvent(nil)")
+					log.Println("Error: OutgoingErrorEvent(nil)")
 				} else {
 					printNonFatalError(event)
 				}
 			case *slack.IncomingEventError:
 				if event == nil {
-					fmt.Println("Error: IncomingEventError(nil)")
+					log.Println("Error: IncomingEventError(nil)")
 				} else {
 					printNonFatalError(event)
 				}
 			case *slack.AckErrorEvent:
 				if event == nil {
-					fmt.Println("Error: AckErrorEvent(nil)")
+					log.Println("Error: AckErrorEvent(nil)")
 				} else {
 					printNonFatalError(event)
 				}
 			case *slack.ConnectionErrorEvent:
 				if event == nil {
-					fmt.Println("Error: ConnectionErrorEvent(nil)")
+					log.Println("Error: ConnectionErrorEvent(nil)")
 				} else {
 					printNonFatalError(event)
 				}
@@ -125,7 +125,7 @@ EventLoop:
 			// fatal errors
 			case *slack.InvalidAuthEvent:
 				if event == nil {
-					fmt.Println("Error: InvalidAuthEvent(nil)")
+					log.Println("Error: InvalidAuthEvent(nil)")
 				} else {
 					printFatalError(errors.New("InvalidAuthEvent"))
 				}
@@ -165,7 +165,7 @@ func loadConfig() (err error) {
 		configPath = filepath.Join(configDirs[0].Path, configName)
 	}
 
-	fmt.Printf("Loading configuration from %v\n", configPath)
+	log.Printf("Loading configuration from %v\n", configPath)
 
 	var configData []byte
 	configData, err = ioutil.ReadFile(configPath)

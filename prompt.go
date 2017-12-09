@@ -2,6 +2,7 @@ package main
 
 import (
 	"fmt"
+	"log"
 	"regexp"
 	"strings"
 	"time"
@@ -63,7 +64,7 @@ func (p *HamPrompt) HandleMessage(msg Message) bool {
 		return true
 	}
 
-	fmt.Printf("Prompt from @%v: %v\n", msg.Session.User(msg.User).Name, unfilteredPrompt)
+	log.Printf("Prompt from @%v: %v\n", msg.Session.User(msg.User).Name, unfilteredPrompt)
 
 	p.uploading = true
 
@@ -84,7 +85,7 @@ func (p *HamPrompt) HandleMessage(msg Message) bool {
 					msg.User, promptWithSpaces, Settings.HamagramsURL))
 		},
 		func(err error) {
-			fmt.Printf("Upload failed: %v\n", err)
+			log.Printf("Upload failed: %v\n", err)
 			msg.Reply("Sorry, I couldn't upload the prompt. :ham:")
 		},
 		func() {

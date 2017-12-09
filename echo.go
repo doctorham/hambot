@@ -1,7 +1,7 @@
 package main
 
 import (
-	"fmt"
+	"log"
 	"strings"
 )
 
@@ -19,7 +19,7 @@ func (*HamEcho) HandleMessage(msg Message) bool {
 		return false
 	}
 
-	fmt.Println("Echoing ham from @" + msg.Session.User(msg.User).Name)
+	log.Println("Echoing ham from @" + msg.Session.User(msg.User).Name)
 
 	msg.Reply("ham :ham:")
 	return true

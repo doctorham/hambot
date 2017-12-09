@@ -1,6 +1,7 @@
 package main
 
 import (
+	"log"
 	"regexp"
 )
 
@@ -28,8 +29,11 @@ func (a *HamAnnounce) HandleMessage(msg Message) bool {
 
 	allowedUser := msg.Session.UserByName(Settings.Announcer)
 	if allowedUser == nil || msg.User != allowedUser.ID {
+		log.Printf("announce failed: disallowed user (%v != %v)\n", msg.User, allowedUser.ID)
 		return false
 	}
+
+	log.Printf("announce '%v'\n", matches[1])
 
 	msg.Session.Announce(matches[1])
 	return true
